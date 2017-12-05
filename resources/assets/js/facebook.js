@@ -23,6 +23,9 @@ $(document).ready(function() {
           }
 
           $('#fullcal').fullCalendar({
+            header:{center: 'month,agendaWeek,agendaDay'},
+            defaultView:'month',
+            editable:true;
             events: events,
             eventClick: function(event, element) {
 
