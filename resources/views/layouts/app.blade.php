@@ -14,7 +14,8 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/app.css') }}" rel="stylesheet">    
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.css"/>
 
     <style>
         body {
@@ -78,6 +79,64 @@
     <!-- JavaScripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js" integrity="sha384-I6F5OKECLVtK/BL+8iSLDEHowSAfUo76ZL9+kGAgTRdiByINKJaqTPH/QVNS1VDb" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-    <script src="{{ asset('js/app.js') }}"></script>
+	<script src="{{ asset('js/app.js') }}"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.js"></script>
+	
+	<script>
+	var events = [];
+	$(document).ready(function() {
+		window.fbAsyncInit = function() {
+			FB.init({
+			  appId            : '876969792383940',
+			  autoLogAppEvents : true,
+			  xfbml            : true,
+			  version          : 'v2.11'
+			});
+			
+			FB.getLoginStatus(function(response) {
+			  if (response.status === 'connected') {
+				document.getElementById('loginBtn').style.display='none';	
+					FB.api('me?fields=events', function(response) {
+						for ( x in response.events.data) {
+								 
+							events.push({
+						
+							title: response.events.data[x]['name'],
+							start: response.events.data[x]['start_time']
+							});
+						 
+						}
+						 
+						$('#fullcal').fullCalendar({
+							 events: events,
+							  eventClick: function(event, element) {
+
+								event.title = "CLICKED!";
+									console.log('addsdd');
+								$('#fullcal').fullCalendar('updateEvent', event);
+
+							}
+							  
+						});
+						   
+					});
+				}
+			});
+		};
+
+	  (function(d, s, id){
+		 var js, fjs = d.getElementsByTagName(s)[0];
+		 if (d.getElementById(id)) {return;}
+		 js = d.createElement(s); js.id = id;
+		 js.src = "https://connect.facebook.net/en_US/sdk.js";
+		 fjs.parentNode.insertBefore(js, fjs);
+	   }(document, 'script', 'facebook-jssdk'));
+	   
+	   
+	   
+	   
+	});
+	</script>
 </body>
 </html>
