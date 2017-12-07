@@ -17,6 +17,8 @@ var allEvents = [];
 var freeTime = [];
 var mandatoryEvents = [];
 var notMandatoryEvents = [];
+var googleEvents=[];
+var totalEvents=[];
 /**
  *  On load, called to load the auth2 library and API client library.
  */
@@ -105,7 +107,7 @@ function listUpcomingEvents() {
   gapi.client.calendar.events.list({
     'calendarId': 'primary',
     'timeMin': (new Date()).toISOString(),
-    'timeMax': new Date('2017-12-08T08:05:00+01:00').toISOString(),
+    'timeMax': new Date('2017-12-30T08:05:00+01:00').toISOString(),
     'showDeleted': false,
     'singleEvents': true,
     'maxResults': 20,
@@ -129,7 +131,9 @@ function listUpcomingEvents() {
       prepareData(events);
       //console.log(freeTime);
       //console.log(notMandatoryEvents);
-      //console.log(mandatoryEvents);
+	  googleConvert(events);
+	  
+	  
     } else {
       appendPre('No upcoming events found.');
     }
@@ -709,7 +713,10 @@ var Seed = [
   },
 ];
 
-var events = allEvents;
+var eventsfb = [];
+
+
+
 window.fbAsyncInit = function() {
   FB.init({
     appId            : '876969792383940',
@@ -719,37 +726,21 @@ window.fbAsyncInit = function() {
   });
 
   FB.getLoginStatus(function(response) {
+	  
+	  
     if (response.status === 'connected') {
       document.getElementById('loginBtn').style.display='none';
       FB.api('me?fields=events', function(response) {
         for ( x in response.events.data) {
 
-          events.push({
+          eventsfb.push({
 
             title: response.events.data[x]['name'],
             start: response.events.data[x]['start_time']
           });
 
         }
-
-        $('#fullcal').fullCalendar({
-          header:{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'month,agendaWeek,agendaDay'
-          },
-          defaultView:'month',
-          editable:true,
-          events: events,
-          eventClick: function(event, element) {
-
-            event.title = "CLICKED!";
-            console.log('addsdd');
-            $('#fullcal').fullCalendar('updateEvent', event);
-          }
-
-        });
-
+		drawcalendar();
       });
     }
   });
@@ -761,5 +752,49 @@ window.fbAsyncInit = function() {
   js.src = "https://connect.facebook.net/en_US/sdk.js";
   fjs.parentNode.insertBefore(js, fjs);
 }(document, 'script', 'facebook-jssdk'));
+
+function googleConvert(arrayEvents){
+	
+	for (x in arrayEvents){
+		console.log(arrayEvents[x]);
+		//alert(arrayEvents[x]['start']['dateTime']);
+		googleEvents.push({
+            title: arrayEvents[x]['summary'],
+            start: arrayEvents[x]['start']['dateTime'],
+			color: 'red'
+          });
+		
+	}
+		  
+	$('#fullcal').fullCalendar( 'addEventSource', googleEvents );
+
+	
+}
+
+
+function drawcalendar(){
+	totalEvents = eventsfb.concat(googleEvents);
+
+		
+	$('#fullcal').fullCalendar({
+          header:{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'month,agendaWeek,agendaDay'
+          },
+		 
+          defaultView:'month',
+          editable:true,
+          events: totalEvents,
+          eventClick: function(event, element) {
+
+            event.title = "CLICKED!";
+            console.log('addsdd');
+            $('#fullcal').fullCalendar('updateEvent', event);
+          }
+
+        });
+	
+}
 
 //# sourceMappingURL=app.js.map
