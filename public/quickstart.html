@@ -38,10 +38,10 @@
         <input type="number" name="reminder" id="reminder" placeholder="Minutes" min="10" value="10" /> </br>
         <div style="color:darkgreen" id="viewForStaticEvent">
           <label>Start Time :</label>
-          <input type="datetime-local" name="start" id="start" placeholder="Start" value="2017-12-04T08:00:00" />
+          <input type="datetime-local" name="start" id="start" placeholder="Start" value="2017-12-13T08:00:00" />
           </br>
           <label>End Time :</label>
-          <input type="datetime-local" name="end" id="end" placeholder="End" value="2017-12-04T09:00:00" />
+          <input type="datetime-local" name="end" id="end" placeholder="End" value="2017-12-13T09:00:00" />
           </br>
         </div>
 
@@ -49,7 +49,7 @@
           <label>Nr. of hours : </label>
           <input type="number" name="hours" id="hours" placeholder="Hours" min="1" max="8" value="1" /> </br>
           <label>Deadline :</label>
-          <input type="datetime-local" name="deadline" id="deadline" placeholder="Deadline" value="2017-12-04T09:00:00" />
+          <input type="datetime-local" name="deadline" id="deadline" placeholder="Deadline" value="2017-12-13T09:00:00" />
           </br>
         </div>
         <input type="button" name="submit_id" id="btn_id" value="Create" onclick="submitForm()" />
@@ -76,6 +76,7 @@
     // included, separated by spaces.
     var SCOPES = "https://www.googleapis.com/auth/calendar";
     var t = { OTHER: "2", PARTY: "3", EAT: "4", ASSIGNMENT: "5", CLASS: "6", WORK: "7", SLEEP: "10", FIXED: "11" };
+    var MAXDATE = new Date('2017-12-17T08:05:00+01:00');
     var authorizeButton = document.getElementById('authorize-button');
     var signoutButton = document.getElementById('signout-button');
 
@@ -158,7 +159,7 @@
       var textContent = document.createTextNode('\t' + message + '\n');
       var htmlValue = document.createElement("button");
       htmlValue.textContent = "Delete";
-      htmlValue.onclick = function () { deleteEventClick(id) };
+      htmlValue.onclick = function () { deleteEventClick(id, summary) };
       pre.appendChild(htmlValue);
       pre.appendChild(textContent);
     }
@@ -171,10 +172,10 @@
       gapi.client.calendar.events.list({
         'calendarId': 'primary',
         'timeMin': (new Date()).toISOString(),
-        'timeMax': new Date('2017-12-08T08:05:00+01:00').toISOString(),
+        'timeMax': MAXDATE.toISOString(),
         'showDeleted': false,
         'singleEvents': true,
-        'maxResults': 20,
+        'maxResults': 30,
         'orderBy': 'startTime'
       }).then(function (response) {
         var events = response.result.items;
@@ -216,13 +217,21 @@
             'value': (new Date(events[i].start.dateTime) - endDate) / 1000 / 60
           });
         }
+
         else if (distance < 0) {
           //add buttons to delete one of them using id's
           handleOverlap(events[i - 1], events[i]);
         }
         endDate = new Date(events[i].end.dateTime);
       }
-      
+      distance = (MAXDATE - new Date(events[events.length - 1].end.dateTime)) / 1000 / 60;
+      if (distance >= 30) {
+        freeTime.push({
+          'startHour': new Date(events[events.length - 1].end.dateTime),
+          'endHour': MAXDATE,
+          'value': distance
+        });
+      }
     }
 
     function splitPriorities(event) {
@@ -234,17 +243,17 @@
           mandatoryEvents.push(event);
         }
       }
-     
+
     }
 
     function handleOverlap(event1, event2) {
       if (event1.colorId < event2.colorId) {
         //delete button with event1.eventId
-        appendPre("Overlap between: " + event1.summary + " and " + event2.summary + ". We recommend to delete event: " + event2.summary);
+        appendPre("Overlap between: " + event1.summary + " and " + event2.summary + ". We recommend to delete event: " + event1.summary);
       }
       else if (event1.colorId > event2.colorId) {
         //delete button with event2.eventId
-        appendPre("Overlap between: " + event1.summary + " and " + event2.summary + ". We recommend to delete event: " + event1.summary);
+        appendPre("Overlap between: " + event1.summary + " and " + event2.summary + ". We recommend to delete event: " + event2.summary);
       }
       else {
         appendPre("Overlap between: " + event1.summary + " and " + event2.summary + ". Events have equal priorities");
@@ -259,19 +268,19 @@
       });
 
       request.execute(function (event) {
-        appendPre('Event created: ' + event.summary + " " + event.htmlLink);
+        appendPre('Event created: ' + event.summary); //+ " " + event.htmlLink
       });
     }
 
 
-    function deleteEventClick(id) {
+    function deleteEventClick(id, summary) {
       var request = gapi.client.calendar.events.delete({
         'calendarId': 'primary',
         'eventId': id
       });
 
       request.execute(function (event) {
-        appendPre('Event : ' + id + " was deleted");
+        appendPre('Event : ' + summary + " was deleted");
       })
     }
 
@@ -291,7 +300,6 @@
       var overlapedStart = new Date(overlapedEvent.start.dateTime);
       var overlapedEnd = new Date(overlapedEvent.end.dateTime);
       if (start < overlapedStart && overlapedEnd < end) {
-        //addEventClick(overlapedEvent);
       }
       else if (overlapedStart < start && end < overlapedEnd) {
         var event = generateEvent(overlapedEvent.summary,
@@ -330,16 +338,16 @@
         console.log(event);
         addEventClick(event);
       }
-      deleteEventClick(overlapedEvent.id);
+      deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
     }
 
     function reasign(startAfter, overlapedEvent) {
       var index = mandatoryEvents.indexOf(overlapedEvent);
       console.log(index);
-      if(index>=0){
-        mandatoryEvents.splice(index,1);
+      if (index >= 0) {
+        mandatoryEvents.splice(index, 1);
       }
-      deleteEventClick(overlapedEvent.id);
+      deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
       console.log(overlapedEvent);
       console.log(freeTime);
       console.log(mandatoryEvents);
@@ -355,6 +363,7 @@
           freeUntilDeadline.push(element);
         }
       }
+
       console.log("freeUntilDeadline");
       console.log(freeUntilDeadline);
       for (let i = 0; i < freeUntilDeadline.length; i++) {
@@ -368,9 +377,9 @@
             element.endHour.toISOString());
           addEventClick(event);
           hours = hours - element.value;
-         console.log('comparison');
-         freeTime.splice(i,1);
-         console.log(freeTime);
+          console.log('comparison');
+          freeTime.splice(i, 1);
+          console.log(freeTime);
         }
         else if (element.value >= hours && hours != 0) {
           var event = generateEvent(overlapedEvent.summary,
@@ -382,7 +391,7 @@
           addEventClick(event);
           hours = 0;
           //delete from free time
-          freeTime.splice(i,1);
+          freeTime.splice(i, 1);
           console.log(freeTime);
           break;
         }
@@ -405,7 +414,7 @@
           console.log(value);
 
           if (hours > value && hours != 0) {
-            deleteEventClick(element.id);
+            deleteEventClick(element.id, element.summary);
             var event = generateEvent(overlapedEvent.summary,
               overlapedEvent.location,
               overlapedEvent.description,
@@ -415,10 +424,10 @@
             addEventClick(event);
             console.log(event);
             hours = hours - value;
-            notMandatoryEvents.splice(i,1);
+            notMandatoryEvents.splice(i, 1);
           }
           else if (hours <= value && hours != 0) {
-            deleteEventClick(element.id);
+            deleteEventClick(element.id, element.summary);
             var event = generateEvent(overlapedEvent.summary,
               overlapedEvent.location,
               overlapedEvent.description,
@@ -427,7 +436,7 @@
               (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
             console.log(event);
             addEventClick(event);
-            notMandatoryEvents.splice(i,1);
+            notMandatoryEvents.splice(i, 1);
             hours = 0;
             break;
           }
@@ -452,7 +461,7 @@
           var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
           console.log(value);
           if (hours > value && hours != 0) {
-            deleteEventClick(element.id);
+            deleteEventClick(element.id, element.summary);
             var event = generateEvent(overlapedEvent.summary,
               overlapedEvent.location,
               overlapedEvent.description,
@@ -462,11 +471,11 @@
             addEventClick(event);
             console.log(event);
             hours = hours - value;
-            mandatoryEvents.splice(i,1);
+            mandatoryEvents.splice(i, 1);
             reasign(deadline, element);
           }
           else if (hours <= value && hours != 0) {
-            deleteEventClick(element.id);
+            deleteEventClick(element.id, element.summary);
             var event = generateEvent(overlapedEvent.summary,
               overlapedEvent.location,
               overlapedEvent.description,
@@ -476,7 +485,7 @@
             console.log(event);
             addEventClick(event);
             hours = 0;
-            mandatoryEvents.splice(i,1);
+            mandatoryEvents.splice(i, 1);
             reasign(deadline, element);
             break;
           }
@@ -507,6 +516,7 @@
       var startTime = new Date(start).toISOString();
       var endTime = new Date(end).toISOString();
 
+
       var cannotBeAdded = true;
       switch (type) {
         case t.FIXED: {
@@ -527,21 +537,22 @@
           if (overlaps.length > 0) {
             for (let i = 0; i < overlaps.length; i++) {
               if (overlaps[i].colorId === t.EAT || overlaps[i].colorId === t.OTHER || overlaps.PARTY) {
-                deleteEventClick(overlaps[i].eventId);
+                deleteEventClick(overlaps[i].eventId, overlaps[i].summary);
               }
-              else if (overlaps[i].colorId === t.CLASS || overlaps[i].colorId === t.WORK || overlaps.SLEEP) {
+              else if (overlaps[i].colorId === t.CLASS || overlaps[i].colorId === t.WORK || overlaps[i].colorId === t.SLEEP) {
                 //delete partially
                 deletePartially(new Date(startTime), new Date(endTime), overlaps[i]);
               }
-              else if (overlaps[i].colorId === t.ASSIGNMENT) {
-                //reasign
-                reasign(new Date(endTime), overlaps[i]);
+              else if (overlaps[i].colorId === t.ASSIGNMENT){
+                reasign(end, overlaps[i]);
               }
             }
           }
           break;
         }
         case t.ASSIGNMENT: {
+          var time = new Date();
+          reasign(time, generateEvent(summary, location, deadline + '|' + description, type, time.toISOString(), time.addHours(parseInt(hours)).toISOString()));
           break;
         }
         case t.OTHER: {
@@ -557,11 +568,45 @@
           break;
         }
         case t.PARTY: {
+          for (let i = 0; i < freeTime.length; i++) {
+            const element = freeTime[i];
+            if (element.startHour <= new Date(startTime) && new Date(endTime) <= element.endHour) {
+              cannotBeAdded = false;
+              break;
+            }
+          }
+          if (cannotBeAdded) {
+            var overlaps = [];
+            for (let i = 0; i < allEvents.length; i++) {
+              const element = allEvents[i];
+              if (haveOverlap(new Date(element.start.dateTime), new Date(element.end.dateTime), new Date(startTime), new Date(endTime))) {
+                console.log(element.summary);
+                if (element.colorId === t.OTHER) {
+                  overlaps.push(element);
+                  cannotBeAdded = false;
+                }
+                else {
+                  cannotBeAdded = true;
+                  break;
+                }
+              }
+            }
+            if (cannotBeAdded == false) {
+              for (let i = 0; i < overlaps.length; i++) {
+                const element = overlaps[i];
+                deleteEventClick(element.id, element.summary);
+              }
+            }
+          }
+          break;
+        }
+        default: {
+          cannotBeAdded = false;
           break;
         }
       }
-      generateEvent(summary, location, description, type, startTime, endTime);
 
+      generateEvent(summary, location, description, type, startTime, endTime);
 
       if (!cannotBeAdded) {
         addEventClick(event);
@@ -615,21 +660,21 @@
     function deleteAll() {
       for (let i = 0; i < allEvents.length; i++) {
         const element = allEvents[i];
-        deleteEventClick(element.id);
+        deleteEventClick(element.id, element.summary);
       }
     }
     var Seed = [
       {
-        'summary': 'Assignment',
-        'location': 'location',
-        'description': '2017-12-07T08:00:00+01:00|description',
-        'colorId': t.ASSIGNMENT,
+        'summary': 'Classes',
+        'location': 'Infopark',
+        'description': 'ELTE Master Courses',
+        'colorId': t.CLASS,
         'start': {
-          'dateTime': new Date('2017-12-06T08:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-13T07:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-13T09:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -637,33 +682,101 @@
         ]
       },
       {
-        'summary': 'Cooking',
+        'summary': 'Homework ToP',
+        'location': 'Anywhere',
+        'description': '2017-12-14T08:00:00+01:00|deadlock program',
+        'colorId': t.ASSIGNMENT,
+        'start': {
+          'dateTime': new Date('2017-12-13T09:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'end': {
+          'dateTime': new Date('2017-12-13T15:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'recurrence': [
+          'RRULE:FREQ=DAILY;COUNT=1'
+        ]
+      },
+      {
+        'summary': 'Random assignment',
+        'location': 'random',
+        'description': '2017-12-14T08:00:00+01:00|random assignment added for test',
+        'colorId': t.ASSIGNMENT,
+        'start': {
+          'dateTime': new Date('2017-12-13T11:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'end': {
+          'dateTime': new Date('2017-12-13T12:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'recurrence': [
+          'RRULE:FREQ=DAILY;COUNT=1'
+        ]
+      },
+      {
+        'summary': 'Lunch',
+        'location': 'Infopark',
+        'description': 'I will eat pizza',
+        'colorId': t.EAT,
+        'start': {
+          'dateTime': new Date('2017-12-13T15:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'end': {
+          'dateTime': new Date('2017-12-13T16:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'recurrence': [
+          'RRULE:FREQ=DAILY;COUNT=1'
+        ]
+      },
+      {
+        'summary': 'Classes',
+        'location': 'ELTE',
+        'description': 'Master courses',
+        'colorId': t.CLASS,
+        'start': {
+          'dateTime': new Date('2017-12-13T17:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'end': {
+          'dateTime': new Date('2017-12-13T19:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'recurrence': [
+          'RRULE:FREQ=DAILY;COUNT=1'
+        ]
+      },
+      {
+        'summary': 'Web Engineering Project',
+        'location': 'Anywhere',
+        'description': '2017-12-15T20:00:00+01:00|description',
+        'colorId': t.ASSIGNMENT,
+        'start': {
+          'dateTime': new Date('2017-12-13T19:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'end': {
+          'dateTime': new Date('2017-12-13T21:00:00+01:00').toISOString(),
+          'timeZone': 'Europe/Budapest'
+        },
+        'recurrence': [
+          'RRULE:FREQ=DAILY;COUNT=1'
+        ]
+      },
+      {
+        'summary': 'Dinner',
         'location': 'location',
         'description': 'description',
         'colorId': t.EAT,
         'start': {
-          'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-13T21:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-06T18:00:00+01:00').toISOString(),
-          'timeZone': 'Europe/Budapest'
-        },
-        'recurrence': [
-          'RRULE:FREQ=DAILY;COUNT=1'
-        ]
-      },
-      {
-        'summary': 'Assignment second',
-        'location': 'location',
-        'description': '2017-12-08T20:00:00+01:00|description',
-        'colorId': t.ASSIGNMENT,
-        'start': {
-          'dateTime': new Date('2017-12-06T20:00:00+01:00').toISOString(),
-          'timeZone': 'Europe/Budapest'
-        },
-        'end': {
-          'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-13T22:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -672,15 +785,15 @@
       },
       {
         'summary': 'Party',
-        'location': 'location',
+        'location': 'Kekeres Dormitory',
         'description': 'description',
         'colorId': t.PARTY,
         'start': {
-          'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-13T22:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T00:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -689,15 +802,15 @@
       },
       {
         'summary': 'Sleep',
-        'location': 'location',
+        'location': 'Dorms',
         'description': 'description',
         'colorId': t.SLEEP,
         'start': {
-          'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T00:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-07T08:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T08:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -710,11 +823,11 @@
         'description': 'description',
         'colorId': t.CLASS,
         'start': {
-          'dateTime': new Date('2017-12-07T10:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T10:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-07T14:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T14:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -727,11 +840,11 @@
         'description': 'description',
         'colorId': t.EAT,
         'start': {
-          'dateTime': new Date('2017-12-07T15:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T15:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-07T16:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T16:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -744,11 +857,11 @@
         'description': 'description',
         'colorId': t.WORK,
         'start': {
-          'dateTime': new Date('2017-12-07T17:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T17:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-07T22:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-14T22:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
@@ -761,11 +874,11 @@
         'description': 'description',
         'colorId': t.SLEEP,
         'start': {
-          'dateTime': new Date('2017-12-08T00:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-15T00:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'end': {
-          'dateTime': new Date('2017-12-08T08:00:00+01:00').toISOString(),
+          'dateTime': new Date('2017-12-15T08:00:00+01:00').toISOString(),
           'timeZone': 'Europe/Budapest'
         },
         'recurrence': [
