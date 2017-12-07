@@ -1,6 +1,7 @@
 // Client ID and API key from the Developer Console
-var CLIENT_ID = '505416199336-isbs2g8tr7k8f8inss9t1rjt7s0duvqd.apps.googleusercontent.com';
-var API_KEY = 'AIzaSyAIyS1GoFmevvthw9AucLQ8ygTJ2NVR-04';
+var CLIENT_ID = '906708430776-pk082cqcu4viu4h8be5g2dbvl3vi9cpq.apps.googleusercontent.com';
+var API_KEY = 'AIzaSyDIZ6RLigSUJs8FPSXVKpiAylhyfpRDr3k';
+
 
 // Array of API discovery doc URLs for APIs used by the quickstart
 var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
@@ -112,6 +113,7 @@ function listUpcomingEvents() {
   }).then(function (response) {
     var events = response.result.items;
     allEvents = events;
+    console.log(allEvents);
     appendPre('Upcoming events:');
     if (events.length > 0) {
       for (i = 0; i < events.length; i++) {
@@ -125,9 +127,9 @@ function listUpcomingEvents() {
       }
       //handle overlaps, split mandatory and non mandatory events, find windows
       prepareData(events);
-      console.log(freeTime);
-      console.log(notMandatoryEvents);
-      console.log(mandatoryEvents);
+      //console.log(freeTime);
+      //console.log(notMandatoryEvents);
+      //console.log(mandatoryEvents);
     } else {
       appendPre('No upcoming events found.');
     }
@@ -250,7 +252,7 @@ function deletePartially(start, end, overlapedEvent) {
       overlapedEvent.colorId,
       overlapedStart.toISOString(),
       start.toISOString());
-    console.log(event);
+    //console.log(event);
     addEventClick(event);
   }
   else if (overlapedStart < end && end < overlapedEnd) {
@@ -260,7 +262,7 @@ function deletePartially(start, end, overlapedEvent) {
       overlapedEvent.colorId,
       end.toISOString(),
       overlapedEnd.toISOString());
-    console.log(event);
+    //console.log(event);
     addEventClick(event);
   }
   deleteEventClick(overlapedEvent.id);
@@ -268,19 +270,19 @@ function deletePartially(start, end, overlapedEvent) {
 
 function reasign(startAfter, overlapedEvent) {
   var index = mandatoryEvents.indexOf(overlapedEvent);
-  console.log(index);
+  //console.log(index);
   if(index>=0){
     mandatoryEvents.splice(index,1);
   }
   deleteEventClick(overlapedEvent.id);
-  console.log(overlapedEvent);
-  console.log(freeTime);
-  console.log(mandatoryEvents);
-  console.log(notMandatoryEvents);
+  //console.log(overlapedEvent);
+  //console.log(freeTime);
+  //console.log(mandatoryEvents);
+  //console.log(notMandatoryEvents);
   var deadline = new Date(overlapedEvent.description.split('|')[0]);
-  console.log(deadline);
+  //console.log(deadline);
   var hours = (new Date(overlapedEvent.end.dateTime) - new Date(overlapedEvent.start.dateTime)) / 1000 / 60;
-  console.log(hours);
+  //console.log(hours);
   var freeUntilDeadline = [];
   for (let i = 0; i < freeTime.length; i++) {
     const element = freeTime[i];
@@ -288,8 +290,8 @@ function reasign(startAfter, overlapedEvent) {
       freeUntilDeadline.push(element);
     }
   }
-  console.log("freeUntilDeadline");
-  console.log(freeUntilDeadline);
+  //console.log("freeUntilDeadline");
+  //console.log(freeUntilDeadline);
   for (let i = 0; i < freeUntilDeadline.length; i++) {
     const element = freeUntilDeadline[i];
     if (element.value < hours && hours != 0) {
@@ -301,9 +303,9 @@ function reasign(startAfter, overlapedEvent) {
         element.endHour.toISOString());
       addEventClick(event);
       hours = hours - element.value;
-     console.log('comparison');
+     //console.log('comparison');
      freeTime.splice(i,1);
-     console.log(freeTime);
+     //console.log(freeTime);
     }
     else if (element.value >= hours && hours != 0) {
       var event = generateEvent(overlapedEvent.summary,
@@ -316,14 +318,14 @@ function reasign(startAfter, overlapedEvent) {
       hours = 0;
       //delete from free time
       freeTime.splice(i,1);
-      console.log(freeTime);
+      //console.log(freeTime);
       break;
     }
     else {
       break;
     }
   }
-  console.log(hours);
+  //console.log(hours);
   if (hours > 0) {
     var notMandatory = [];
     for (let i = 0; i < notMandatoryEvents.length; i++) {
@@ -331,11 +333,11 @@ function reasign(startAfter, overlapedEvent) {
       if (new Date(element.end.dateTime) < deadline)
         notMandatory.push(element);
     }
-    console.log(notMandatory);
+    //console.log(notMandatory);
     for (let i = 0; i < notMandatory.length; i++) {
       const element = notMandatory[i];
       var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
-      console.log(value);
+      //console.log(value);
 
       if (hours > value && hours != 0) {
         deleteEventClick(element.id);
@@ -346,7 +348,7 @@ function reasign(startAfter, overlapedEvent) {
           element.start.dateTime,
           element.end.dateTime);
         addEventClick(event);
-        console.log(event);
+        //console.log(event);
         hours = hours - value;
         notMandatoryEvents.splice(i,1);
       }
@@ -358,7 +360,7 @@ function reasign(startAfter, overlapedEvent) {
           overlapedEvent.colorId,
           element.start.dateTime,
           (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-        console.log(event);
+        //console.log(event);
         addEventClick(event);
         notMandatoryEvents.splice(i,1);
         hours = 0;
@@ -370,7 +372,7 @@ function reasign(startAfter, overlapedEvent) {
     }
   }
 
-  console.log(hours);
+  //console.log(hours);
   if (hours > 0) {
     var reasignable = [];
     for (let i = 0; i < mandatoryEvents.length; i++) {
@@ -379,11 +381,11 @@ function reasign(startAfter, overlapedEvent) {
         reasignable.push(element);
       }
     }
-    console.log(reasignable);
+    //console.log(reasignable);
     for (let i = 0; i < reasignable.length; i++) {
       const element = reasignable[i];
       var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
-      console.log(value);
+      //console.log(value);
       if (hours > value && hours != 0) {
         deleteEventClick(element.id);
         var event = generateEvent(overlapedEvent.summary,
@@ -393,7 +395,7 @@ function reasign(startAfter, overlapedEvent) {
           element.start.dateTime,
           element.end.dateTime);
         addEventClick(event);
-        console.log(event);
+        //console.log(event);
         hours = hours - value;
         mandatoryEvents.splice(i,1);
         reasign(deadline, element);
@@ -406,7 +408,7 @@ function reasign(startAfter, overlapedEvent) {
           overlapedEvent.colorId,
           element.start.dateTime,
           (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-        console.log(event);
+        //console.log(event);
         addEventClick(event);
         hours = 0;
         mandatoryEvents.splice(i,1);

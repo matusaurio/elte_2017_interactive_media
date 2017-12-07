@@ -15,8 +15,8 @@ var elixir = require('laravel-elixir');
      mix.sass('app.scss');
      // mix.scripts('app.js', 'public/js/app.js');
      mix.scripts([
-        // 'google.js',
-        'facebook.js',
-        'app.js'
+       'google.js',
+       'facebook.js',
+        // 'app.js'
     ], 'public/js/app.js');
  });
