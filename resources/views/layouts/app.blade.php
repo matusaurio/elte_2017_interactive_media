@@ -13,11 +13,11 @@
   <link rel="stylesheet" href="{{asset('lib/font-awesome.min.css')}}">
   {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:100,300,400,700"> --}}
 
-    <!-- Styles -->
-    {{-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous"> --}}
-    <link rel="stylesheet" href="{{asset('lib/bootstrap.min.css')}}">
-    {{-- <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.css"/> --}}
-    <link rel="stylesheet" href="{{asset('lib/fullcalendar.min.css')}}">
+  <!-- Styles -->
+  {{-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous"> --}}
+  <link rel="stylesheet" href="{{asset('lib/bootstrap.min.css')}}">
+  {{-- <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.css"/> --}}
+  <link rel="stylesheet" href="{{asset('lib/fullcalendar.min.css')}}">
 </head>
 <body id="app-layout">
   <nav class="navbar navbar-default navbar-static-top navbar-inverse">
@@ -81,68 +81,82 @@
         </div>
         <div class="modal-body">
           <form name="eventForm" id="form_id">
-            <label>Summary :</label>
-            <input type="text" name="summary" id="summary" placeholder="Summary" /> </br>
-            <label>Location :</label>
-            <input type="text" name="location" id="location" placeholder="Location" /> </br>
-            <label>Description :</label>
-            <input type="text" name="description" id="description" placeholder="Description" />
+            <div class="form-group">
+              <label for="summary">Summary :</label>
+              <input class="form-control" type="text" name="summary" id="summary" placeholder="Summary" />
+            </div>
+            <div class="form-group">
+              <label for="location">Location :</label>
+              <input class="form-control" type="text" name="location" id="location" placeholder="Location" />
+            </div>
+            <div class="form-group">
+              <label for="description">Description :</label>
+              <input class="form-control" type="text" name="description" id="description" placeholder="Description" />
+            </div>
             <br/>
-            <label>Type :
-              <label>
-                <select name="type" id="type" placeholder="Types">
-                  <option value="2" selected style="color:#7AE7BF">Other</option>
-                  <option value="3" style="color:#DBADFF">Party/Event</option>
-                  <option value="4" style="color:#FF887C">Cook/Eat</option>
-                  <option value="5" style="color:#FBD75B">Assignment</option>
-                  <option value="6" style="color:#FFB878">Class</option>
-                  <option value="7" style="color:#46D6DB">Work</option>
-                  <option value="10" style="color:#51B749">Sleep</option>
-                  <option value="11" style="color:#DC2127">Fixed</option>
-                </select>
-                </br>
-                <label>Reminder : </label>
-                <input type="number" name="reminder" id="reminder" placeholder="Minutes" min="10" value="10" /> </br>
-                <div style="color:darkgreen" id="viewForStaticEvent">
-                  <label>Start Time :</label>
-                  <input type="datetime-local" name="start" id="start" placeholder="Start" value="2017-12-04T08:00:00" />
-                  </br>
-                  <label>End Time :</label>
-                  <input type="datetime-local" name="end" id="end" placeholder="End" value="2017-12-04T09:00:00" />
-                  </br>
-                </div>
+            <div class="form-group">
+              <label for="type">Type :</label>
+              <select name="type" id="type" placeholder="Types">
+                <option value="2" selected style="color:#7AE7BF">Other</option>
+                <option value="3" style="color:#DBADFF">Party/Event</option>
+                <option value="4" style="color:#FF887C">Cook/Eat</option>
+                <option value="5" style="color:#FBD75B">Assignment</option>
+                <option value="6" style="color:#FFB878">Class</option>
+                <option value="7" style="color:#46D6DB">Work</option>
+                <option value="10" style="color:#51B749">Sleep</option>
+                <option value="11" style="color:#DC2127">Fixed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="number">Reminder : </label>
+              <input class="form-control" type="number" name="reminder" id="reminder" placeholder="Minutes" min="10" value="10" />
+            </div>
+            <div style="color:darkgreen" id="viewForStaticEvent">
+              <div class="form-group">
+                <label for="start">Start Time :</label>
+                <input class="form-control" type="datetime-local" name="start" id="start" placeholder="Start" value="2017-12-04T08:00:00" />
+              </div>
+              <div class="form-group">
+                <label for="end">End Time :</label>
+                <input class="form-control" type="datetime-local" name="end" id="end" placeholder="End" value="2017-12-04T09:00:00" />
+              </div>
+            </div>
 
-                <div style="color:brown" id="viewForDinamicEvent">
-                  <label>Nr. of hours : </label>
-                  <input type="number" name="hours" id="hours" placeholder="Hours" min="1" max="8" value="1" /> </br>
-                  <label>Deadline :</label>
-                  <input type="datetime-local" name="deadline" id="deadline" placeholder="Deadline" value="2017-12-04T09:00:00" />
-                  </br>
-                </div>
-                <input type="button" name="submit_id" id="btn_id" value="Create" onclick="submitForm()" />
-                <input type="button" value="Delete all" onclick="deleteAll()" />
-                <input type="button" value="Seed" onclick="seed()" />
-                </br>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
-        </div>
-      </div>
+            <div style="color:brown" id="viewForDinamicEvent">
+              <div class="form-group">
+                <label for="hours">Nr. of hours : </label>
+                <input class="form-control" type="number" name="hours" id="hours" placeholder="Hours" min="1" max="8" value="1" />
+              </div>
+              <div class="form-group">
+                <label for="deadline">Deadline :</label>
+                <input class="form-control" type="datetime-local" name="deadline" id="deadline" placeholder="Deadline" value="2017-12-04T09:00:00" />
+              </div>
+          </div>
+          <div class="input-group">
+            <input class="btn btn-primary" type="button" name="submit_id" id="btn_id" value="Create" onclick="submitForm()" />
+            <input class="btn btn-default" type="button" value="Delete all" onclick="deleteAll()" />
+            <input class="btn btn-default" type="button" value="Seed" onclick="seed()" />
+          </div>
+      </form>
     </div>
-  </div>
+    {{-- <div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <button type="button" class="btn btn-primary">Save changes</button>
+  </div> --}}
+</div>
+</div>
+</div>
 
-  <!-- JavaScripts -->
-  {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js" integrity="sha384-I6F5OKECLVtK/BL+8iSLDEHowSAfUo76ZL9+kGAgTRdiByINKJaqTPH/QVNS1VDb" crossorigin="anonymous"></script> --}}
-  <script src="{{asset('lib/jquery.min.js')}}"></script>
-  {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script> --}}
-  <script src="{{asset('lib/bootstrap.min.js')}}"></script>
-  <script src="{{ asset('js/app.js') }}"></script>
-  <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()"></script>
-  {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script> --}}
-  <script src="{{asset('lib/moment.min.js')}}"></script>
-  {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.js"></script> --}}
-  <script src="{{asset('lib/fullcalendar.min.js')}}"></script>
+<!-- JavaScripts -->
+{{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js" integrity="sha384-I6F5OKECLVtK/BL+8iSLDEHowSAfUo76ZL9+kGAgTRdiByINKJaqTPH/QVNS1VDb" crossorigin="anonymous"></script> --}}
+<script src="{{asset('lib/jquery.min.js')}}"></script>
+{{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script> --}}
+<script src="{{asset('lib/bootstrap.min.js')}}"></script>
+<script src="{{ asset('js/app.js') }}"></script>
+<script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()"></script>
+{{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script> --}}
+<script src="{{asset('lib/moment.min.js')}}"></script>
+{{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.2.7/fullcalendar.min.js"></script> --}}
+<script src="{{asset('lib/fullcalendar.min.js')}}"></script>
 </body>
 </html>
