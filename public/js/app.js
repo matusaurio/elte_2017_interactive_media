@@ -107,7 +107,7 @@ function listUpcomingEvents() {
   gapi.client.calendar.events.list({
     'calendarId': 'primary',
     'timeMin': (new Date()).toISOString(),
-    'timeMax': new Date('2017-12-30T08:05:00+01:00').toISOString(),
+    'timeMax': new Date('2017-12-31T08:05:00+01:00').toISOString(),
     'showDeleted': false,
     'singleEvents': true,
     'maxResults': 20,
@@ -132,8 +132,8 @@ function listUpcomingEvents() {
       //console.log(freeTime);
       //console.log(notMandatoryEvents);
 	  googleConvert(events);
-	  
-	  
+
+
     } else {
       appendPre('No upcoming events found.');
     }
@@ -191,6 +191,7 @@ function handleOverlap(event1, event2) {
 }
 
 function addEventClick(event) {
+  console.log('click add');
 
   var request = gapi.client.calendar.events.insert({
     'calendarId': 'primary',
@@ -726,8 +727,8 @@ window.fbAsyncInit = function() {
   });
 
   FB.getLoginStatus(function(response) {
-	  
-	  
+
+
     if (response.status === 'connected') {
       document.getElementById('loginBtn').style.display='none';
       FB.api('me?fields=events', function(response) {
@@ -754,7 +755,7 @@ window.fbAsyncInit = function() {
 }(document, 'script', 'facebook-jssdk'));
 
 function googleConvert(arrayEvents){
-	
+
 	for (x in arrayEvents){
 		console.log(arrayEvents[x]);
 		//alert(arrayEvents[x]['start']['dateTime']);
@@ -763,26 +764,26 @@ function googleConvert(arrayEvents){
             start: arrayEvents[x]['start']['dateTime'],
 			color: 'red'
           });
-		
+
 	}
-		  
+
 	$('#fullcal').fullCalendar( 'addEventSource', googleEvents );
 
-	
+
 }
 
 
 function drawcalendar(){
 	totalEvents = eventsfb.concat(googleEvents);
 
-		
+
 	$('#fullcal').fullCalendar({
           header:{
             left: 'prev,next today',
             center: 'title',
             right: 'month,agendaWeek,agendaDay'
           },
-		 
+
           defaultView:'month',
           editable:true,
           events: totalEvents,
@@ -794,7 +795,7 @@ function drawcalendar(){
           }
 
         });
-	
+
 }
 
 //# sourceMappingURL=app.js.map
