@@ -93,11 +93,15 @@
               <label for="description">Description :</label>
               <input class="form-control" type="text" name="description" id="description" placeholder="Description" />
             </div>
-            <br/>
+            <div class="form-group">
+              <label for="number">Reminder : </label>
+              <input class="form-control" type="number" name="reminder" id="reminder" placeholder="Minutes" min="10" value="10" />
+            </div>
             <div class="form-group">
               <label for="type">Type :</label>
               <select name="type" id="type" placeholder="Types">
-                <option value="2" selected style="color:#7AE7BF">Other</option>
+                <option selected disabled >Select</option>
+                <option value="2" style="color:#7AE7BF">Other</option>
                 <option value="3" style="color:#DBADFF">Party/Event</option>
                 <option value="4" style="color:#FF887C">Cook/Eat</option>
                 <option value="5" style="color:#FBD75B">Assignment</option>
@@ -107,11 +111,7 @@
                 <option value="11" style="color:#DC2127">Fixed</option>
               </select>
             </div>
-            <div class="form-group">
-              <label for="number">Reminder : </label>
-              <input class="form-control" type="number" name="reminder" id="reminder" placeholder="Minutes" min="10" value="10" />
-            </div>
-            <div style="color:darkgreen" id="viewForStaticEvent">
+            <div style="color:darkgreen;display:none;" id="viewForStaticEvent">
               <div class="form-group">
                 <label for="start">Start Time :</label>
                 <input class="form-control" type="datetime-local" name="start" id="start" placeholder="Start" value="2017-12-04T08:00:00" />
@@ -122,7 +122,7 @@
               </div>
             </div>
 
-            <div style="color:brown" id="viewForDinamicEvent">
+            <div style="color:brown;display:none;" id="viewForDinamicEvent">
               <div class="form-group">
                 <label for="hours">Nr. of hours : </label>
                 <input class="form-control" type="number" name="hours" id="hours" placeholder="Hours" min="1" max="8" value="1" />

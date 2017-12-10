@@ -55,7 +55,7 @@ function initClient() {
 function updateSigninStatus(isSignedIn) {
   if (isSignedIn) {
     authorizeButton.style.display = 'none';
-    signoutButton.style.display = 'block';
+    signoutButton.style.display = 'none';
     listUpcomingEvents();
   } else {
     authorizeButton.style.display = 'block';
@@ -116,7 +116,7 @@ function listUpcomingEvents() {
   }).then(function (response) {
     var events = response.result.items;
     allEvents = events;
-    console.log(allEvents);
+    //console.log(allEvents);
     appendPre('Upcoming events:');
     if (events.length > 0) {
       for (i = 0; i < events.length; i++) {
@@ -126,12 +126,13 @@ function listUpcomingEvents() {
         if (!start) {
           start = event.start.date;
         }
-        appendDelete(event.summary + ' (' + start + ')' + '(' + event.end.dateTime + ')', event.id);
+        // appendDelete(event.summary + ' (' + start + ')' + '(' + event.end.dateTime + ')', event.id);
+        appendDelete(event.summary, event.id);
       }
       //handle overlaps, split mandatory and non mandatory events, find windows
       prepareData(events);
-      //console.log(freeTime);
-      //console.log(notMandatoryEvents);
+      ////console.log(freeTime);
+      ////console.log(notMandatoryEvents);
       googleConvert(events);
 
 
@@ -200,7 +201,7 @@ function handleOverlap(event1, event2) {
 }
 
 function addEventClick(event) {
-  console.log('click add');
+  //console.log('click add');
 
   var request = gapi.client.calendar.events.insert({
     'calendarId': 'primary',
@@ -244,603 +245,574 @@ function deletePartially(start, end, overlapedEvent) {
     //addEventClick(overlapedEvent);
   }
   else if (overlapedStart < start && end < overlapedEnd) {
-    var event = generateEvent(overlapedEvent.summary,
-      overlapedEvent.location,
-      overlapedEvent.description,
-      overlapedEvent.colorId,
-      overlapedStart.toISOString(),
-      start.toISOString());
+    var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, overlapedStart.toISOString(), start.toISOString());
+    addEventClick(event);
+
+    var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, end.toISOString(), overlapedEnd.toISOString());
+    addEventClick(event);
+  } else if (start < overlapedEnd && overlapedEnd < end) {
+    var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, overlapedStart.toISOString(), start.toISOString());
+    ////console.log(event);
+    addEventClick(event);
+  } else if (overlapedStart < end && end < overlapedEnd) {
+    var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, end.toISOString(), overlapedEnd.toISOString());
+    ////console.log(event);
+    addEventClick(event);
+  }
+  deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
+}
+
+function reasign(startAfter, overlapedEvent) {
+  var index = mandatoryEvents.indexOf(overlapedEvent);
+  ////console.log(index);
+  if(index>=0){
+    mandatoryEvents.splice(index,1);
+  }
+  deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
+  ////console.log(overlapedEvent);
+  ////console.log(freeTime);
+  ////console.log(mandatoryEvents);
+  ////console.log(notMandatoryEvents);
+  var deadline = new Date(overlapedEvent.description.split('|')[0]);
+  ////console.log(deadline);
+  var hours = (new Date(overlapedEvent.end.dateTime) - new Date(overlapedEvent.start.dateTime)) / 1000 / 60;
+  ////console.log(hours);
+  var freeUntilDeadline = [];
+  for (let i = 0; i < freeTime.length; i++) {
+    const element = freeTime[i];
+    if (element.endHour < deadline) {
+      freeUntilDeadline.push(element);
+    }
+  }
+  ////console.log("freeUntilDeadline");
+  ////console.log(freeUntilDeadline);
+  for (let i = 0; i < freeUntilDeadline.length; i++) {
+    const element = freeUntilDeadline[i];
+    if (element.value < hours && hours != 0) {
+      var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.startHour.toISOString(), element.endHour.toISOString());
       addEventClick(event);
+      hours = hours - element.value;
+      ////console.log('comparison');
+      freeTime.splice(i,1);
+      ////console.log(freeTime);
+    }
+    else if (element.value >= hours && hours != 0) {
+      var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.startHour.toISOString(), element.startHour.addHours(hours / 60).toISOString());
+      addEventClick(event);
+      hours = 0;
+      //delete from free time
+      freeTime.splice(i,1);
+      ////console.log(freeTime);
+      break;
+    }
+    else {
+      break;
+    }
+  }
+  ////console.log(hours);
+  if (hours > 0) {
+    var notMandatory = [];
+    for (let i = 0; i < notMandatoryEvents.length; i++) {
+      const element = notMandatoryEvents[i];
+      if (new Date(element.end.dateTime) < deadline)
+      notMandatory.push(element);
+    }
+    ////console.log(notMandatory);
+    for (let i = 0; i < notMandatory.length; i++) {
+      const element = notMandatory[i];
+      var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
+      ////console.log(value);
 
-      var event = generateEvent(overlapedEvent.summary,
-        overlapedEvent.location,
-        overlapedEvent.description,
-        overlapedEvent.colorId,
-        end.toISOString(),
-        overlapedEnd.toISOString());
+      if (hours > value && hours != 0) {
+        deleteEventClick(element.id, element.summary);
+        var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, element.end.dateTime);
         addEventClick(event);
+        ////console.log(event);
+        hours = hours - value;
+        notMandatoryEvents.splice(i,1);
       }
-      else if (start < overlapedEnd && overlapedEnd < end) {
-        var event = generateEvent(overlapedEvent.summary,
-          overlapedEvent.location,
-          overlapedEvent.description,
-          overlapedEvent.colorId,
-          overlapedStart.toISOString(),
-          start.toISOString());
-          //console.log(event);
-          addEventClick(event);
-        }
-        else if (overlapedStart < end && end < overlapedEnd) {
-          var event = generateEvent(overlapedEvent.summary,
-            overlapedEvent.location,
-            overlapedEvent.description,
-            overlapedEvent.colorId,
-            end.toISOString(),
-            overlapedEnd.toISOString());
-            //console.log(event);
-            addEventClick(event);
-          }
-          deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
-        }
+      else if (hours <= value && hours != 0) {
+        deleteEventClick(element.id, element.summary);
+        var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
+        ////console.log(event);
+        addEventClick(event);
+        notMandatoryEvents.splice(i,1);
+        hours = 0;
+        break;
+      }
+      else {
+        break;
+      }
+    }
+  }
 
-        function reasign(startAfter, overlapedEvent) {
-          var index = mandatoryEvents.indexOf(overlapedEvent);
-          //console.log(index);
-          if(index>=0){
-            mandatoryEvents.splice(index,1);
+  ////console.log(hours);
+  if (hours > 0) {
+    var reasignable = [];
+    for (let i = 0; i < mandatoryEvents.length; i++) {
+      const element = mandatoryEvents[i];
+      if (new Date(element.description.split('|')[0]) > deadline) {
+        reasignable.push(element);
+      }
+    }
+    ////console.log(reasignable);
+    for (let i = 0; i < reasignable.length; i++) {
+      const element = reasignable[i];
+      var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
+      ////console.log(value);
+      if (hours > value && hours != 0) {
+        deleteEventClick(element.id, element.summary);
+        var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, element.end.dateTime);
+        addEventClick(event);
+        ////console.log(event);
+        hours = hours - value;
+        mandatoryEvents.splice(i,1);
+        reasign(deadline, element);
+      }
+      else if (hours <= value && hours != 0) {
+        deleteEventClick(element.id, element.summary);
+        var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
+        ////console.log(event);
+        addEventClick(event);
+        hours = 0;
+        mandatoryEvents.splice(i,1);
+        reasign(deadline, element);
+        break;
+      }
+      else {
+        break;
+      }
+    }
+  }
+
+  if (hours > 0) {
+    appendPre(hours + " minutes from event : " + overlapedEvent.summary + " cannot be reasigned automatically.");
+  }
+}
+
+function submitForm() {
+  // data from forms
+  var summary = document.getElementById("summary").value;
+  var location = document.getElementById("location").value;
+  var description = document.getElementById("description").value;
+  var type = document.getElementById("type").value;
+  var reminder = document.getElementById("reminder").value;
+  var start = document.getElementById("start").value;
+  var end = document.getElementById("end").value;
+  var hours = document.getElementById("hours").value;
+  var deadline = document.getElementById("deadline").value;
+
+  //select method of adding depending on type
+  var startTime = new Date(start).toISOString();
+  var endTime = new Date(end).toISOString();
+
+  var cannotBeAdded = true;
+  switch (type) {
+    case t.FIXED: {
+      var overlaps = [];
+      cannotBeAdded = false;
+      for (let i = 0; i < allEvents.length; i++) {
+        if (haveOverlap(new Date(allEvents[i].start.dateTime), new Date(allEvents[i].end.dateTime)
+        , new Date(startTime), new Date(endTime))) {
+          if (allEvents[i].colorId === t.FIXED) {
+            appendPre('Cannot be added because there is already a fixed event on this interval : ' + allEvents[i].summary);
+            cannotBeAdded = true;
+            break;
           }
-          deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
-          //console.log(overlapedEvent);
-          //console.log(freeTime);
-          //console.log(mandatoryEvents);
-          //console.log(notMandatoryEvents);
-          var deadline = new Date(overlapedEvent.description.split('|')[0]);
-          //console.log(deadline);
-          var hours = (new Date(overlapedEvent.end.dateTime) - new Date(overlapedEvent.start.dateTime)) / 1000 / 60;
-          //console.log(hours);
-          var freeUntilDeadline = [];
-          for (let i = 0; i < freeTime.length; i++) {
-            const element = freeTime[i];
-            if (element.endHour < deadline) {
-              freeUntilDeadline.push(element);
+          overlaps.push(allEvents[i]);
+        }
+      };
+
+      if (overlaps.length > 0) {
+        for (let i = 0; i < overlaps.length; i++) {
+          if (overlaps[i].colorId === t.EAT || overlaps[i].colorId === t.OTHER || overlaps.PARTY) {
+            deleteEventClick(overlaps[i].eventId, overlaps[i].summary);
+          }
+          else if (overlaps[i].colorId === t.CLASS || overlaps[i].colorId === t.WORK || overlaps[i].colorId === t.SLEEP) {
+            //delete partially
+            deletePartially(new Date(startTime), new Date(endTime), overlaps[i]);
+          }
+          else if (overlaps[i].colorId === t.ASSIGNMENT){
+            reasign(end, overlaps[i]);
+          }
+        }
+      }
+      break;
+    }
+    case t.ASSIGNMENT: {
+      var time = new Date();
+      reasign(time, generateEvent(summary, location, deadline + '|' + description, type, time.toISOString(), time.addHours(parseInt(hours)).toISOString()));
+      break;
+    }
+    case t.OTHER: {
+      for (i = 0; i < freeTime.length; i++) {
+        if (freeTime[i].endHour <= new Date(deadline) && parseInt(hours) * 60 <= freeTime[i].value) {
+          startTime = new Date(freeTime[i].startHour).toISOString();
+          endTime = (freeTime[i].startHour.addHours(parseInt(hours))).toISOString();
+          description = deadline + '|' + description;
+          cannotBeAdded = false;
+          break;
+        }
+      }
+      break;
+    }
+    case t.PARTY: {
+      for (let i = 0; i < freeTime.length; i++) {
+        const element = freeTime[i];
+        if (element.startHour <= new Date(startTime) && new Date(endTime) <= element.endHour) {
+          cannotBeAdded = false;
+          break;
+        }
+      }
+      if (cannotBeAdded) {
+        var overlaps = [];
+        for (let i = 0; i < allEvents.length; i++) {
+          const element = allEvents[i];
+          if (haveOverlap(new Date(element.start.dateTime), new Date(element.end.dateTime), new Date(startTime), new Date(endTime))) {
+            //console.log(element.summary);
+            if (element.colorId === t.OTHER) {
+              overlaps.push(element);
+              cannotBeAdded = false;
+            }
+            else {
+              cannotBeAdded = true;
+              break;
             }
           }
-          //console.log("freeUntilDeadline");
-          //console.log(freeUntilDeadline);
-          for (let i = 0; i < freeUntilDeadline.length; i++) {
-            const element = freeUntilDeadline[i];
-            if (element.value < hours && hours != 0) {
-              var event = generateEvent(overlapedEvent.summary,
-                overlapedEvent.location,
-                overlapedEvent.description,
-                overlapedEvent.colorId,
-                element.startHour.toISOString(),
-                element.endHour.toISOString());
-                addEventClick(event);
-                hours = hours - element.value;
-                //console.log('comparison');
-                freeTime.splice(i,1);
-                //console.log(freeTime);
-              }
-              else if (element.value >= hours && hours != 0) {
-                var event = generateEvent(overlapedEvent.summary,
-                  overlapedEvent.location,
-                  overlapedEvent.description,
-                  overlapedEvent.colorId,
-                  element.startHour.toISOString(),
-                  element.startHour.addHours(hours / 60).toISOString());
-                  addEventClick(event);
-                  hours = 0;
-                  //delete from free time
-                  freeTime.splice(i,1);
-                  //console.log(freeTime);
-                  break;
-                }
-                else {
-                  break;
-                }
-              }
-              //console.log(hours);
-              if (hours > 0) {
-                var notMandatory = [];
-                for (let i = 0; i < notMandatoryEvents.length; i++) {
-                  const element = notMandatoryEvents[i];
-                  if (new Date(element.end.dateTime) < deadline)
-                  notMandatory.push(element);
-                }
-                //console.log(notMandatory);
-                for (let i = 0; i < notMandatory.length; i++) {
-                  const element = notMandatory[i];
-                  var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
-                  //console.log(value);
-
-                  if (hours > value && hours != 0) {
-                    deleteEventClick(element.id, element.summary);
-                    var event = generateEvent(overlapedEvent.summary,
-                      overlapedEvent.location,
-                      overlapedEvent.description,
-                      overlapedEvent.colorId,
-                      element.start.dateTime,
-                      element.end.dateTime);
-                      addEventClick(event);
-                      //console.log(event);
-                      hours = hours - value;
-                      notMandatoryEvents.splice(i,1);
-                    }
-                    else if (hours <= value && hours != 0) {
-                      deleteEventClick(element.id, element.summary);
-                      var event = generateEvent(overlapedEvent.summary,
-                        overlapedEvent.location,
-                        overlapedEvent.description,
-                        overlapedEvent.colorId,
-                        element.start.dateTime,
-                        (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-                        //console.log(event);
-                        addEventClick(event);
-                        notMandatoryEvents.splice(i,1);
-                        hours = 0;
-                        break;
-                      }
-                      else {
-                        break;
-                      }
-                    }
-                  }
-
-                  //console.log(hours);
-                  if (hours > 0) {
-                    var reasignable = [];
-                    for (let i = 0; i < mandatoryEvents.length; i++) {
-                      const element = mandatoryEvents[i];
-                      if (new Date(element.description.split('|')[0]) > deadline) {
-                        reasignable.push(element);
-                      }
-                    }
-                    //console.log(reasignable);
-                    for (let i = 0; i < reasignable.length; i++) {
-                      const element = reasignable[i];
-                      var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
-                      //console.log(value);
-                      if (hours > value && hours != 0) {
-                        deleteEventClick(element.id, element.summary);
-                        var event = generateEvent(overlapedEvent.summary,
-                          overlapedEvent.location,
-                          overlapedEvent.description,
-                          overlapedEvent.colorId,
-                          element.start.dateTime,
-                          element.end.dateTime);
-                          addEventClick(event);
-                          //console.log(event);
-                          hours = hours - value;
-                          mandatoryEvents.splice(i,1);
-                          reasign(deadline, element);
-                        }
-                        else if (hours <= value && hours != 0) {
-                          deleteEventClick(element.id, element.summary);
-                          var event = generateEvent(overlapedEvent.summary,
-                            overlapedEvent.location,
-                            overlapedEvent.description,
-                            overlapedEvent.colorId,
-                            element.start.dateTime,
-                            (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-                            //console.log(event);
-                            addEventClick(event);
-                            hours = 0;
-                            mandatoryEvents.splice(i,1);
-                            reasign(deadline, element);
-                            break;
-                          }
-                          else {
-                            break;
-                          }
-                        }
-                      }
-
-                      if (hours > 0) {
-                        appendPre(hours + " minutes from event : " + overlapedEvent.summary + " cannot be reasigned automatically.");
-                      }
-                    }
-
-                    function submitForm() {
-                      // data from forms
-                      var summary = document.getElementById("summary").value;
-                      var location = document.getElementById("location").value;
-                      var description = document.getElementById("description").value;
-                      var type = document.getElementById("type").value;
-                      var reminder = document.getElementById("reminder").value;
-                      var start = document.getElementById("start").value;
-                      var end = document.getElementById("end").value;
-                      var hours = document.getElementById("hours").value;
-                      var deadline = document.getElementById("deadline").value;
-
-                      //select method of adding depending on type
-                      var startTime = new Date(start).toISOString();
-                      var endTime = new Date(end).toISOString();
-
-                      var cannotBeAdded = true;
-                      switch (type) {
-                        case t.FIXED: {
-                          var overlaps = [];
-                          cannotBeAdded = false;
-                          for (let i = 0; i < allEvents.length; i++) {
-                            if (haveOverlap(new Date(allEvents[i].start.dateTime), new Date(allEvents[i].end.dateTime)
-                            , new Date(startTime), new Date(endTime))) {
-                              if (allEvents[i].colorId === t.FIXED) {
-                                appendPre('Cannot be added because there is already a fixed event on this interval : ' + allEvents[i].summary);
-                                cannotBeAdded = true;
-                                break;
-                              }
-                              overlaps.push(allEvents[i]);
-                            }
-                          };
-
-                          if (overlaps.length > 0) {
-                            for (let i = 0; i < overlaps.length; i++) {
-                              if (overlaps[i].colorId === t.EAT || overlaps[i].colorId === t.OTHER || overlaps.PARTY) {
-                                deleteEventClick(overlaps[i].eventId, overlaps[i].summary);
-                              }
-                              else if (overlaps[i].colorId === t.CLASS || overlaps[i].colorId === t.WORK || overlaps[i].colorId === t.SLEEP) {
-                                //delete partially
-                                deletePartially(new Date(startTime), new Date(endTime), overlaps[i]);
-                              }
-                              else if (overlaps[i].colorId === t.ASSIGNMENT){
-                                reasign(end, overlaps[i]);
-                              }
-                            }
-                          }
-                          break;
-                        }
-                        case t.ASSIGNMENT: {
-                          var time = new Date();
-                          reasign(time, generateEvent(summary, location, deadline + '|' + description, type, time.toISOString(), time.addHours(parseInt(hours)).toISOString()));
-                          break;
-                        }
-                        case t.OTHER: {
-                          for (i = 0; i < freeTime.length; i++) {
-                            if (freeTime[i].endHour <= new Date(deadline) && parseInt(hours) * 60 <= freeTime[i].value) {
-                              startTime = new Date(freeTime[i].startHour).toISOString();
-                              endTime = (freeTime[i].startHour.addHours(parseInt(hours))).toISOString();
-                              description = deadline + '|' + description;
-                              cannotBeAdded = false;
-                              break;
-                            }
-                          }
-                          break;
-                        }
-                        case t.PARTY: {
-                          for (let i = 0; i < freeTime.length; i++) {
-                            const element = freeTime[i];
-                            if (element.startHour <= new Date(startTime) && new Date(endTime) <= element.endHour) {
-                              cannotBeAdded = false;
-                              break;
-                            }
-                          }
-                          if (cannotBeAdded) {
-                            var overlaps = [];
-                            for (let i = 0; i < allEvents.length; i++) {
-                              const element = allEvents[i];
-                              if (haveOverlap(new Date(element.start.dateTime), new Date(element.end.dateTime), new Date(startTime), new Date(endTime))) {
-                                console.log(element.summary);
-                                if (element.colorId === t.OTHER) {
-                                  overlaps.push(element);
-                                  cannotBeAdded = false;
-                                }
-                                else {
-                                  cannotBeAdded = true;
-                                  break;
-                                }
-                              }
-                            }
-                            if (cannotBeAdded == false) {
-                              for (let i = 0; i < overlaps.length; i++) {
-                                const element = overlaps[i];
-                                deleteEventClick(element.id, element.summary);
-                              }
-                            }
-                          }
-                          break;
-                        }
-                        default: {
-                          cannotBeAdded = false;
-                          break;
-                        }
-                      }
-                      generateEvent(summary, location, description, type, startTime, endTime);
+        }
+        if (cannotBeAdded == false) {
+          for (let i = 0; i < overlaps.length; i++) {
+            const element = overlaps[i];
+            deleteEventClick(element.id, element.summary);
+          }
+        }
+      }
+      break;
+    }
+    default: {
+      cannotBeAdded = false;
+      break;
+    }
+  }
+  generateEvent(summary, location, description, type, startTime, endTime);
 
 
-                      if (!cannotBeAdded) {
-                        addEventClick(event);
-                      }
-                      else {
-                        appendPre("Event : " + summary + " cannot be added");
-                      }
+  if (!cannotBeAdded) {
+    addEventClick(event);
+  }
+  else {
+    appendPre("Event : " + summary + " cannot be added");
+  }
 
-                      //addEventClick(seed[0]);
-                    }
+  //addEventClick(seed[0]);
+}
 
-                    function selectRecurrence(type) {
-                      if (type === t.CLASS ||
-                        type === t.WORK ||
-                        type === t.SLEEP ||
-                        type === t.EAT) {
-                          return 'FREQ=WEEKLY;COUNT=0';
-                        }
-                        else {
-                          return 'FREQ=DAILY;COUNT=1';
-                        }
-                      }
+function selectRecurrence(type) {
+  if (type === t.CLASS || type === t.WORK || type === t.SLEEP || type === t.EAT) {
+    return 'FREQ=WEEKLY;COUNT=0';
+  }
+  else {
+    return 'FREQ=DAILY;COUNT=1';
+  }
+}
 
-                      function generateEvent(summary, location, description, type, startTime, endTime) {
-                        return event = {
-                          'summary': summary,
-                          'location': location,
-                          'description': description,
-                          'colorId': type,
-                          'start': {
-                            'dateTime': startTime,
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': endTime,
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'     //+ selectRecurrence(type)
-                          ]
-                        };
-                      }
+function generateEvent(summary, location, description, type, startTime, endTime) {
+  return event = {
+    'summary': summary,
+    'location': location,
+    'description': description,
+    'colorId': type,
+    'start': {
+      'dateTime': startTime,
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': endTime,
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'     //+ selectRecurrence(type)
+    ]
+  };
+}
 
-                      function seed() {
-                        //seed with events
-                        for (let i = 0; i < Seed.length; i++) {
-                          addEventClick(Seed[i]);
-                        }
-                      }
+function seed() {
+  //seed with events
+  for (let i = 0; i < Seed.length; i++) {
+    addEventClick(Seed[i]);
+  }
+}
 
-                      function deleteAll() {
-                        for (let i = 0; i < allEvents.length; i++) {
-                          const element = allEvents[i];
-                          deleteEventClick(element.id, element.summary);
-                        }
-                      }
-                      var Seed = [
-                        {
-                          'summary': 'Assignment',
-                          'location': 'location',
-                          'description': '2017-12-07T08:00:00+01:00|description',
-                          'colorId': t.ASSIGNMENT,
-                          'start': {
-                            'dateTime': new Date('2017-12-06T08:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Cooking',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.EAT,
-                          'start': {
-                            'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-06T18:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Assignment second',
-                          'location': 'location',
-                          'description': '2017-12-08T20:00:00+01:00|description',
-                          'colorId': t.ASSIGNMENT,
-                          'start': {
-                            'dateTime': new Date('2017-12-06T20:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Party',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.PARTY,
-                          'start': {
-                            'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Sleep',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.SLEEP,
-                          'start': {
-                            'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-07T08:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Classes',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.CLASS,
-                          'start': {
-                            'dateTime': new Date('2017-12-07T10:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-07T14:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Cooking ',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.EAT,
-                          'start': {
-                            'dateTime': new Date('2017-12-07T15:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-07T16:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Work',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.WORK,
-                          'start': {
-                            'dateTime': new Date('2017-12-07T17:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-07T22:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                        {
-                          'summary': 'Sleep',
-                          'location': 'location',
-                          'description': 'description',
-                          'colorId': t.SLEEP,
-                          'start': {
-                            'dateTime': new Date('2017-12-08T00:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'end': {
-                            'dateTime': new Date('2017-12-08T08:00:00+01:00').toISOString(),
-                            'timeZone': 'Europe/Budapest'
-                          },
-                          'recurrence': [
-                            'RRULE:FREQ=DAILY;COUNT=1'
-                          ]
-                        },
-                      ];
+function deleteAll() {
+  for (let i = 0; i < allEvents.length; i++) {
+    const element = allEvents[i];
+    deleteEventClick(element.id, element.summary);
+  }
+}
+var Seed = [
+  {
+    'summary': 'Assignment',
+    'location': 'location',
+    'description': '2017-12-07T08:00:00+01:00|description',
+    'colorId': t.ASSIGNMENT,
+    'start': {
+      'dateTime': new Date('2017-12-06T08:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Cooking',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.EAT,
+    'start': {
+      'dateTime': new Date('2017-12-06T15:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-06T18:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Assignment second',
+    'location': 'location',
+    'description': '2017-12-08T20:00:00+01:00|description',
+    'colorId': t.ASSIGNMENT,
+    'start': {
+      'dateTime': new Date('2017-12-06T20:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Party',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.PARTY,
+    'start': {
+      'dateTime': new Date('2017-12-06T22:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Sleep',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.SLEEP,
+    'start': {
+      'dateTime': new Date('2017-12-07T00:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-07T08:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Classes',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.CLASS,
+    'start': {
+      'dateTime': new Date('2017-12-07T10:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-07T14:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Cooking ',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.EAT,
+    'start': {
+      'dateTime': new Date('2017-12-07T15:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-07T16:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Work',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.WORK,
+    'start': {
+      'dateTime': new Date('2017-12-07T17:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-07T22:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+  {
+    'summary': 'Sleep',
+    'location': 'location',
+    'description': 'description',
+    'colorId': t.SLEEP,
+    'start': {
+      'dateTime': new Date('2017-12-08T00:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'end': {
+      'dateTime': new Date('2017-12-08T08:00:00+01:00').toISOString(),
+      'timeZone': 'Europe/Budapest'
+    },
+    'recurrence': [
+      'RRULE:FREQ=DAILY;COUNT=1'
+    ]
+  },
+];
 
-                      var eventsfb = [];
+var eventsfb = [];
 
 
 
-                      window.fbAsyncInit = function() {
-                        FB.init({
-                          appId            : '876969792383940',
-                          autoLogAppEvents : true,
-                          xfbml            : true,
-                          version          : 'v2.11'
-                        });
+window.fbAsyncInit = function() {
+  FB.init({
+    appId            : '876969792383940',
+    autoLogAppEvents : true,
+    xfbml            : true,
+    version          : 'v2.11'
+  });
 
-                        FB.getLoginStatus(function(response) {
-
-
-                          if (response.status === 'connected') {
-                            document.getElementById('loginBtn').style.display='none';
-                            FB.api('me?fields=events', function(response) {
-                              for ( x in response.events.data) {
-
-                                eventsfb.push({
-
-                                  title: response.events.data[x]['name'],
-                                  start: response.events.data[x]['start_time']
-                                });
-
-                              }
-                              drawcalendar();
-                            });
-                          }
-                        });
-                      };
-                      (function(d, s, id){
-                        var js, fjs = d.getElementsByTagName(s)[0];
-                        if (d.getElementById(id)) {return;}
-                        js = d.createElement(s); js.id = id;
-                        js.src = "https://connect.facebook.net/en_US/sdk.js";
-                        fjs.parentNode.insertBefore(js, fjs);
-                      }(document, 'script', 'facebook-jssdk'));
-
-                      function googleConvert(arrayEvents){
-
-                        for (x in arrayEvents){
-                          console.log(arrayEvents[x]);
-                          //alert(arrayEvents[x]['start']['dateTime']);
-                          googleEvents.push({
-                            title: arrayEvents[x]['summary'],
-                            start: arrayEvents[x]['start']['dateTime'],
-                            color: 'red'
-                          });
-
-                        }
-
-                        $('#fullcal').fullCalendar( 'addEventSource', googleEvents );
+  FB.getLoginStatus(function(response) {
 
 
-                      }
+    if (response.status === 'connected') {
+      document.getElementById('loginBtn').style.display='none';
+      FB.api('me?fields=events', function(response) {
+        for ( x in response.events.data) {
+
+          eventsfb.push({
+
+            title: response.events.data[x]['name'],
+            start: response.events.data[x]['start_time']
+          });
+
+        }
+        drawcalendar();
+      });
+    }
+  });
+};
+(function(d, s, id){
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "https://connect.facebook.net/en_US/sdk.js";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+function googleConvert(arrayEvents){
+
+  for (x in arrayEvents){
+    if (arrayEvents[x]['colorId'] == 2) {
+      arrayEvents[x]['colorId'] = '#7AE7BF';
+    } else if (arrayEvents[x]['colorId'] == 3) {
+      arrayEvents[x]['colorId'] = '#DBADFF';
+    } else if (arrayEvents[x]['colorId'] == 4) {
+      arrayEvents[x]['colorId'] = '#FF887C';
+    } else if (arrayEvents[x]['colorId'] == 5) {
+      arrayEvents[x]['colorId'] = '#FBD75B';
+    } else if (arrayEvents[x]['colorId'] == 6) {
+      arrayEvents[x]['colorId'] = '#FFB878';
+    } else if (arrayEvents[x]['colorId'] == 7) {
+      arrayEvents[x]['colorId'] = '#46D6DB';
+    } else if (arrayEvents[x]['colorId'] == 10) {
+      arrayEvents[x]['colorId'] = '#51B749';
+    } else if (arrayEvents[x]['colorId'] == 11) {
+      arrayEvents[x]['colorId'] = '#DC2127';
+    }
+    googleEvents.push({
+      title: arrayEvents[x]['summary'],
+      start: arrayEvents[x]['start']['dateTime'],
+      color: arrayEvents[x]['colorId']
+    });
+
+  }
+
+  $('#fullcal').fullCalendar( 'addEventSource', googleEvents );
 
 
-                      function drawcalendar(){
-                        totalEvents = eventsfb.concat(googleEvents);
+}
 
 
-                        $('#fullcal').fullCalendar({
-                          header:{
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: 'month,agendaWeek,agendaDay'
-                          },
+function drawcalendar(){
+  totalEvents = eventsfb.concat(googleEvents);
 
-                          defaultView:'month',
-                          editable:true,
-                          events: totalEvents,
-                          eventClick: function(event, element) {
 
-                            event.title = "CLICKED!";
-                            console.log('addsdd');
-                            $('#fullcal').fullCalendar('updateEvent', event);
-                          }
+  $('#fullcal').fullCalendar({
+    header:{
+      left: 'prev,next today',
+      center: 'title',
+      right: 'month,agendaWeek,agendaDay'
+    },
 
-                        });
+    defaultView:'month',
+    editable:true,
+    events: totalEvents,
+    eventClick: function(event, element) {
 
-                      }
+      event.title = "CLICKED!";
+      $('#fullcal').fullCalendar('updateEvent', event);
+    }
 
-                      //# sourceMappingURL=app.js.map
+  });
+
+}
+
+$(document).ready(function() {
+  $('select').on('change', function() {
+    if (this.value == 2 || this.value == 5 || this.value == 11) {
+      $('#viewForStaticEvent').css('display', 'block');
+      $('#viewForDinamicEvent').css('display', 'none');
+    } else {
+      $('#viewForStaticEvent').css('display', 'none');
+      $('#viewForDinamicEvent').css('display', 'block');
+    }
+  });
+});
+
+//# sourceMappingURL=app.js.map
