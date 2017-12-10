@@ -210,6 +210,7 @@ function addEventClick(event) {
 
   request.execute(function (event) {
     appendPre('Event created: ' + event.summary); //+ " " + event.htmlLink);
+    listUpcomingEvents();
   });
   $('#modalCreate').modal('hide');
 }
@@ -223,6 +224,7 @@ function deleteEventClick(id, summary) {
 
   request.execute(function (event) {
     appendPre('Event : ' + summary + " was deleted");
+	  listUpcomingEvents();
   })
 }
 
@@ -746,7 +748,8 @@ window.fbAsyncInit = function() {
 }(document, 'script', 'facebook-jssdk'));
 
 function googleConvert(arrayEvents){
-
+  $('#fullcal').fullCalendar( 'removeEvents' );
+  var googleEvents=[];
   for (x in arrayEvents){
     if (arrayEvents[x]['colorId'] == 2) {
       arrayEvents[x]['colorId'] = '#7AE7BF';
@@ -774,6 +777,7 @@ function googleConvert(arrayEvents){
   }
 
   $('#fullcal').fullCalendar( 'addEventSource', googleEvents );
+  $('#fullcal').fullCalendar( 'addEventSource', eventsfb );
 
 
 }
