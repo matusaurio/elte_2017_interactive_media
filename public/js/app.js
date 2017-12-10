@@ -209,6 +209,7 @@ function addEventClick(event) {
 
   request.execute(function (event) {
     appendPre('Event created: ' + event.summary); //+ " " + event.htmlLink);
+	listUpcomingEvents();
   });
   $('#modalCreate').modal('hide');
 }
@@ -222,6 +223,7 @@ function deleteEventClick(id, summary) {
 
   request.execute(function (event) {
     appendPre('Event : ' + summary + " was deleted");
+	  listUpcomingEvents();
   })
 }
 
@@ -554,7 +556,6 @@ function deletePartially(start, end, overlapedEvent) {
                       else {
                         appendPre("Event : " + summary + " cannot be added");
                       }
-
                       //addEventClick(seed[0]);
                     }
 
@@ -783,6 +784,7 @@ function deletePartially(start, end, overlapedEvent) {
 
                                   title: response.events.data[x]['name'],
                                   start: response.events.data[x]['start_time']
+								  
                                 });
 
                               }
@@ -800,28 +802,24 @@ function deletePartially(start, end, overlapedEvent) {
                       }(document, 'script', 'facebook-jssdk'));
 
                       function googleConvert(arrayEvents){
-
+						
+						$('#fullcal').fullCalendar( 'removeEvents' );
+						var googleEvents=[];
+						
                         for (x in arrayEvents){
-                          console.log(arrayEvents[x]);
-                          //alert(arrayEvents[x]['start']['dateTime']);
                           googleEvents.push({
                             title: arrayEvents[x]['summary'],
                             start: arrayEvents[x]['start']['dateTime'],
                             color: 'red'
                           });
-
                         }
-
                         $('#fullcal').fullCalendar( 'addEventSource', googleEvents );
-
-
+                        $('#fullcal').fullCalendar( 'addEventSource', eventsfb );
                       }
 
 
                       function drawcalendar(){
                         totalEvents = eventsfb.concat(googleEvents);
-
-
                         $('#fullcal').fullCalendar({
                           header:{
                             left: 'prev,next today',
