@@ -117,7 +117,7 @@ function listUpcomingEvents() {
     var events = response.result.items;
     allEvents = events;
     //console.log(allEvents);
-    appendPre('Upcoming events:');
+    // appendPre('Upcoming events:');
     if (events.length > 0) {
       for (i = 0; i < events.length; i++) {
         var event = events[i];
@@ -127,7 +127,7 @@ function listUpcomingEvents() {
           start = event.start.date;
         }
         // appendDelete(event.summary + ' (' + start + ')' + '(' + event.end.dateTime + ')', event.id);
-        appendDelete(event.summary, event.id);
+        // appendDelete(event.summary, event.id);
       }
       //handle overlaps, split mandatory and non mandatory events, find windows
       prepareData(events);
@@ -171,7 +171,9 @@ function prepareData(events) {
       'value': distance
     });
   }
-
+  console.log(freeTime);
+  console.log(notMandatoryEvents);
+  console.log(mandatoryEvents);
 }
 
 function splitPriorities(event) {
@@ -223,7 +225,7 @@ function deleteEventClick(id, summary) {
   });
 
   request.execute(function (event) {
-    appendPre('Event : ' + summary + " was deleted");
+    appendPre(" The event was deleted");
 	  listUpcomingEvents();
   })
 }
@@ -243,6 +245,8 @@ function haveOverlap(firstStart, firstEnd, secondStart, secondEnd) {
 function deletePartially(start, end, overlapedEvent) {
   var overlapedStart = new Date(overlapedEvent.start.dateTime);
   var overlapedEnd = new Date(overlapedEvent.end.dateTime);
+  console.log("overlaepd event in dp");
+  console.log(overlapedEvent);
   if (start < overlapedStart && overlapedEnd < end) {
     //addEventClick(overlapedEvent);
   }
@@ -271,14 +275,15 @@ function reasign(startAfter, overlapedEvent) {
     mandatoryEvents.splice(index,1);
   }
   deleteEventClick(overlapedEvent.id, overlapedEvent.summary);
-  ////console.log(overlapedEvent);
-  ////console.log(freeTime);
-  ////console.log(mandatoryEvents);
-  ////console.log(notMandatoryEvents);
+  console.log("in reasign");
+  console.log(overlapedEvent);
+  console.log(freeTime);
+  console.log(mandatoryEvents);
+  console.log(notMandatoryEvents);
   var deadline = new Date(overlapedEvent.description.split('|')[0]);
   ////console.log(deadline);
   var hours = (new Date(overlapedEvent.end.dateTime) - new Date(overlapedEvent.start.dateTime)) / 1000 / 60;
-  ////console.log(hours);
+  console.log(hours);
   var freeUntilDeadline = [];
   for (let i = 0; i < freeTime.length; i++) {
     const element = freeTime[i];
@@ -286,17 +291,17 @@ function reasign(startAfter, overlapedEvent) {
       freeUntilDeadline.push(element);
     }
   }
-  ////console.log("freeUntilDeadline");
-  ////console.log(freeUntilDeadline);
+  console.log("freeUntilDeadline");
+  console.log(freeUntilDeadline);
   for (let i = 0; i < freeUntilDeadline.length; i++) {
     const element = freeUntilDeadline[i];
     if (element.value < hours && hours != 0) {
       var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.startHour.toISOString(), element.endHour.toISOString());
       addEventClick(event);
       hours = hours - element.value;
-      ////console.log('comparison');
       freeTime.splice(i,1);
-      ////console.log(freeTime);
+      console.log("free time");
+      console.log(freeTime);
     }
     else if (element.value >= hours && hours != 0) {
       var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.startHour.toISOString(), element.startHour.addHours(hours / 60).toISOString());
@@ -311,7 +316,7 @@ function reasign(startAfter, overlapedEvent) {
       break;
     }
   }
-  ////console.log(hours);
+  console.log(hours);
   if (hours > 0) {
     var notMandatory = [];
     for (let i = 0; i < notMandatoryEvents.length; i++) {
@@ -319,7 +324,8 @@ function reasign(startAfter, overlapedEvent) {
       if (new Date(element.end.dateTime) < deadline)
       notMandatory.push(element);
     }
-    ////console.log(notMandatory);
+    console.log("not mandatory");
+    console.log(notMandatory);
     for (let i = 0; i < notMandatory.length; i++) {
       const element = notMandatory[i];
       var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
@@ -329,14 +335,14 @@ function reasign(startAfter, overlapedEvent) {
         deleteEventClick(element.id, element.summary);
         var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, element.end.dateTime);
         addEventClick(event);
-        ////console.log(event);
+        console.log(event);
         hours = hours - value;
         notMandatoryEvents.splice(i,1);
       }
       else if (hours <= value && hours != 0) {
         deleteEventClick(element.id, element.summary);
         var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-        ////console.log(event);
+        console.log(event);
         addEventClick(event);
         notMandatoryEvents.splice(i,1);
         hours = 0;
@@ -348,7 +354,7 @@ function reasign(startAfter, overlapedEvent) {
     }
   }
 
-  ////console.log(hours);
+  console.log(hours);
   if (hours > 0) {
     var reasignable = [];
     for (let i = 0; i < mandatoryEvents.length; i++) {
@@ -357,7 +363,8 @@ function reasign(startAfter, overlapedEvent) {
         reasignable.push(element);
       }
     }
-    ////console.log(reasignable);
+    console.log('reasignamble');
+    console.log(reasignable);
     for (let i = 0; i < reasignable.length; i++) {
       const element = reasignable[i];
       var value = (new Date(element.end.dateTime) - new Date(element.start.dateTime)) / 1000 / 60;
@@ -366,7 +373,7 @@ function reasign(startAfter, overlapedEvent) {
         deleteEventClick(element.id, element.summary);
         var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, element.end.dateTime);
         addEventClick(event);
-        ////console.log(event);
+        console.log(event);
         hours = hours - value;
         mandatoryEvents.splice(i,1);
         reasign(deadline, element);
@@ -374,7 +381,7 @@ function reasign(startAfter, overlapedEvent) {
       else if (hours <= value && hours != 0) {
         deleteEventClick(element.id, element.summary);
         var event = generateEvent(overlapedEvent.summary, overlapedEvent.location, overlapedEvent.description, overlapedEvent.colorId, element.start.dateTime, (new Date(element.start.dateTime)).addHours(hours / 60).toISOString());
-        ////console.log(event);
+        console.log(event);
         addEventClick(event);
         hours = 0;
         mandatoryEvents.splice(i,1);
@@ -404,6 +411,9 @@ function submitForm() {
   var hours = document.getElementById("hours").value;
   var deadline = document.getElementById("deadline").value;
 
+  console.log("type");
+  console.log(type);
+
   //select method of adding depending on type
   var startTime = new Date(start).toISOString();
   var endTime = new Date(end).toISOString();
@@ -426,19 +436,29 @@ function submitForm() {
       };
 
       if (overlaps.length > 0) {
+        console.log('all overlaps');
+        console.log(overlaps);
         for (let i = 0; i < overlaps.length; i++) {
+          console.log(overlaps[i].colorId);
+          console.log(overlaps[i].colorId === t.ASSIGNMENT);
           if (overlaps[i].colorId === t.EAT || overlaps[i].colorId === t.OTHER || overlaps.PARTY) {
             deleteEventClick(overlaps[i].eventId, overlaps[i].summary);
           }
           else if (overlaps[i].colorId === t.CLASS || overlaps[i].colorId === t.WORK || overlaps[i].colorId === t.SLEEP) {
             //delete partially
+            console.log("delete partially events");
+            console.log(overlaps[i]);
             deletePartially(new Date(startTime), new Date(endTime), overlaps[i]);
           }
           else if (overlaps[i].colorId === t.ASSIGNMENT){
+            console.log("reasign events");
+            console.log(overlaps[i]);
             reasign(end, overlaps[i]);
           }
         }
       }
+
+      console.log("before break");
       break;
     }
     case t.ASSIGNMENT: {
@@ -496,6 +516,8 @@ function submitForm() {
       break;
     }
   }
+  console.log("before event creation");
+
   generateEvent(summary, location, description, type, startTime, endTime);
 
 
@@ -505,7 +527,7 @@ function submitForm() {
   else {
     appendPre("Event : " + summary + " cannot be added");
   }
-
+  console.log("after event creation");
   //addEventClick(seed[0]);
 }
 
@@ -752,26 +774,27 @@ function googleConvert(arrayEvents){
   var googleEvents=[];
   for (x in arrayEvents){
     if (arrayEvents[x]['colorId'] == 2) {
-      arrayEvents[x]['colorId'] = '#7AE7BF';
+      arrayEvents[x]['color'] = '#7AE7BF';
     } else if (arrayEvents[x]['colorId'] == 3) {
-      arrayEvents[x]['colorId'] = '#DBADFF';
+      arrayEvents[x]['color'] = '#DBADFF';
     } else if (arrayEvents[x]['colorId'] == 4) {
-      arrayEvents[x]['colorId'] = '#FF887C';
+      arrayEvents[x]['color'] = '#FF887C';
     } else if (arrayEvents[x]['colorId'] == 5) {
-      arrayEvents[x]['colorId'] = '#FBD75B';
+      arrayEvents[x]['color'] = '#FBD75B';
     } else if (arrayEvents[x]['colorId'] == 6) {
-      arrayEvents[x]['colorId'] = '#FFB878';
+      arrayEvents[x]['color'] = '#FFB878';
     } else if (arrayEvents[x]['colorId'] == 7) {
-      arrayEvents[x]['colorId'] = '#46D6DB';
+      arrayEvents[x]['color'] = '#46D6DB';
     } else if (arrayEvents[x]['colorId'] == 10) {
-      arrayEvents[x]['colorId'] = '#51B749';
+      arrayEvents[x]['color'] = '#51B749';
     } else if (arrayEvents[x]['colorId'] == 11) {
-      arrayEvents[x]['colorId'] = '#DC2127';
+      arrayEvents[x]['color'] = '#DC2127';
     }
     googleEvents.push({
+      id: arrayEvents[x]['id'],
       title: arrayEvents[x]['summary'],
       start: arrayEvents[x]['start']['dateTime'],
-      color: arrayEvents[x]['colorId']
+      color: arrayEvents[x]['color']
     });
 
   }
@@ -798,8 +821,8 @@ function drawcalendar(){
     editable:true,
     events: totalEvents,
     eventClick: function(event, element) {
-
-      event.title = "CLICKED!";
+      deleteEventClick(event.id, event.summary);
+      event.title = "DELETED!";
       $('#fullcal').fullCalendar('updateEvent', event);
     }
 
@@ -809,12 +832,12 @@ function drawcalendar(){
 
 $(document).ready(function() {
   $('select').on('change', function() {
-    if (this.value == 2 || this.value == 5 || this.value == 11) {
-      $('#viewForStaticEvent').css('display', 'block');
-      $('#viewForDinamicEvent').css('display', 'none');
-    } else {
+    if (this.value == 2 || this.value == 5) {
       $('#viewForStaticEvent').css('display', 'none');
       $('#viewForDinamicEvent').css('display', 'block');
+    } else {
+      $('#viewForStaticEvent').css('display', 'block');
+      $('#viewForDinamicEvent').css('display', 'none');
     }
   });
 });
